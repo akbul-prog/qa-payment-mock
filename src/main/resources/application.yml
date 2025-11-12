@@ -7,4 +7,6 @@ spring:
 logging:
   level:
     root: INFO
-    com.example.paymentmock: DEBUG
+    ru.interview.qaMock: DEBUG
+  file:
+    name: logs/app.log
