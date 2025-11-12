@@ -16,7 +16,7 @@ FROM eclipse-temurin:11-jre
 WORKDIR /app
 
 # Копируем готовый jar из стадии сборки
-COPY --from=builder /app/target/payment-mock-api.jar app.jar
+COPY --from=builder /app/target/qa-payment-mock-*.jar app.jar
 
 # Открываем порт
 EXPOSE 8080
