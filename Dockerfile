@@ -1,5 +1,5 @@
-# Используем Java 11
-FROM openjdk:11-jre-slim
+# Используем официальный образ Java 11 от Eclipse Temurin
+FROM eclipse-temurin:11-jre
 
 # Указываем рабочую директорию
 WORKDIR /app
@@ -11,4 +11,4 @@ COPY target/payment-mock-api.jar app.jar
 EXPOSE 8080
 
 # Команда запуска
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
