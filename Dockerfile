@@ -1,14 +1,12 @@
-# Используем официальный образ Java 11 от Eclipse Temurin
-FROM eclipse-temurin:11-jre
-
-# Указываем рабочую директорию
+# ---------- Stage 1: Build ----------
+FROM eclipse-temurin:11-jdk as builder
 WORKDIR /app
+COPY . .
+RUN ./mvnw clean package -DskipTests
 
-# Копируем jar из target
-COPY target/payment-mock-api.jar app.jar
-
-# Открываем порт 8080
+# ---------- Stage 2: Run ----------
+FROM eclipse-temurin:11-jre
+WORKDIR /app
+COPY --from=builder /app/target/payment-mock-api.jar app.jar
 EXPOSE 8080
-
-# Команда запуска
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
