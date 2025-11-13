@@ -132,8 +132,7 @@ public class PaymentService {
             // ДОЛЖНО БЫТЬ: throw new IllegalArgumentException("Refund amount exceeds payment amount");
         }
 
-        // БАГ #11: Перезаписывает refundedAmount вместо добавления
-        payment.setRefundedAmount(request.getAmount());  // ДОЛЖНО БЫТЬ: += request.getAmount()
+        payment.setRefundedAmount(totalRefunded);
         payment.setStatus(PaymentStatus.REFUNDED);
 
         log.info("Refund processed successfully: {}", request.getPaymentId());
