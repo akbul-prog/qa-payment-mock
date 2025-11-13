@@ -8,9 +8,12 @@ import ru.interview.qaMock.model.Payment;
 import ru.interview.qaMock.model.PaymentStatus;
 
 import java.util.Currency;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,8 +39,7 @@ public class PaymentService {
         log.debug("Currency validation passed: {}", request.getCurrency());
 
         // БАГ #3: Не проверяет дублирование orderId
-        boolean orderExists = payments.values().stream()
-                .anyMatch(p -> request.getOrderId().equals(p.getOrderId()));
+        boolean orderExists = !getPaymentsByOrderId(request.getOrderId()).isEmpty();
         if (orderExists) {
             log.warn("Order already exists: {}", request.getOrderId());
             // ДОЛЖНО БЫТЬ: throw new IllegalStateException("Order ID already exists");
@@ -77,14 +79,14 @@ public class PaymentService {
 
         Payment payment = payments.get(paymentId);
 
-        // БАГ #6: Создает фиктивный платеж для несуществующего ID
         if (payment == null) {
-            log.warn("Payment not found, creating fake payment: {}", paymentId);
-            // ДОЛЖНО БЫТЬ: throw new IllegalArgumentException("Payment not found");
-            payment = new Payment(paymentId, "unknown", 0L,
-                    Currency.getInstance("RUB"), null, PaymentStatus.DEPOSITED, 0L);
-            payments.put(paymentId, payment);
-            return payment;
+            throw new IllegalArgumentException("Payment with id: " + paymentId + "was not found");
+        }
+
+        List<Payment> paymentsForOrder = getPaymentsByOrderId(payment.getOrderId());
+        boolean orderAlreadyPaid = paymentsForOrder.stream().anyMatch(p -> !Objects.equals(p.getStatus(), PaymentStatus.STARTED));
+        if (orderAlreadyPaid) {
+            throw new IllegalArgumentException("Order with id: " + payment.getOrderId() + " was already paid");
         }
 
         // БАГ #7: Разрешает повторное подтверждение
@@ -149,5 +151,11 @@ public class PaymentService {
         }
 
         return payment;
+    }
+
+    private List<Payment> getPaymentsByOrderId(String orderId) {
+        return payments.values().stream()
+                .filter(p -> Objects.equals(orderId, p.getOrderId()))
+                .collect(Collectors.toUnmodifiableList());
     }
 }
