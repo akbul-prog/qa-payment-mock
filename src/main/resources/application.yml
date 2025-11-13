@@ -2,6 +2,11 @@ server:
   port: 8080
 
 spring:
+  jackson:
+    deserialization:
+      FAIL_ON_NUMBERS_FOR_ENUMS: true
+      FAIL_ON_NULL_FOR_PRIMITIVES: true
+      ACCEPT_FLOAT_AS_INT: false
   main:
     banner-mode: "off"
 logging:

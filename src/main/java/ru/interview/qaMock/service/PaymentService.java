@@ -80,11 +80,13 @@ public class PaymentService {
         Payment payment = payments.get(paymentId);
 
         if (payment == null) {
-            throw new IllegalArgumentException("Payment with id: " + paymentId + "was not found");
+            throw new IllegalArgumentException("Payment with id: " + paymentId + " was not found");
         }
 
         List<Payment> paymentsForOrder = getPaymentsByOrderId(payment.getOrderId());
-        boolean orderAlreadyPaid = paymentsForOrder.stream().anyMatch(p -> !Objects.equals(p.getStatus(), PaymentStatus.STARTED));
+        boolean orderAlreadyPaid = paymentsForOrder.stream()
+                .filter(p -> !Objects.equals(p.getPaymentId(), paymentId))
+                .anyMatch(p -> !Objects.equals(p.getStatus(), PaymentStatus.STARTED));
         if (orderAlreadyPaid) {
             throw new IllegalArgumentException("Order with id: " + payment.getOrderId() + " was already paid");
         }
@@ -95,20 +97,13 @@ public class PaymentService {
             // ДОЛЖНО БЫТЬ: throw new IllegalStateException("Payment already confirmed");
         }
 
-        // БАГ #8: Разрешает переход из REFUNDED в DEPOSITED
-        if (payment.getStatus() == PaymentStatus.REFUNDED) {
-            log.warn("Confirming refunded payment: {}", paymentId);
-            // ДОЛЖНО БЫТЬ: запретить подтверждение возвращенного платежа
-        }
-
         payment.setStatus(PaymentStatus.DEPOSITED);
         log.info("Payment confirmed successfully: {}", paymentId);
         return payment;
     }
 
     public Payment refund(PaymentRefundRequest request) {
-        log.debug("Processing refund for payment: {}, amount: {}",
-                request.getPaymentId(), request.getAmount());
+        log.debug("Processing refund for payment: {}, amount: {}", request.getPaymentId(), request.getAmount());
 
         Payment payment = payments.get(request.getPaymentId());
 
@@ -117,14 +112,9 @@ public class PaymentService {
             throw new IllegalArgumentException("Payment not found");
         }
 
-        // БАГ #9: Разрешает возврат из любого статуса
-        if (payment.getStatus() != PaymentStatus.DEPOSITED) {
-            log.warn("Refunding payment with status {}: {}",
-                    payment.getStatus(), request.getPaymentId());
-            // ДОЛЖНО БЫТЬ: throw new IllegalStateException("Payment must be confirmed before refund");
-        }
+        log.info("Refunding payment with status {}: {}", payment.getStatus(), request.getPaymentId());
 
-        // БАГ #10: Не проверяет превышение суммы возврата
+        // БАГ #8: Не проверяет превышение суммы возврата
         long totalRefunded = payment.getRefundedAmount() + request.getAmount();
         if (totalRefunded > payment.getAmount()) {
             log.warn("Refund amount {} exceeds payment amount {} for payment: {}",
